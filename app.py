@@ -1,10 +1,11 @@
 
 import streamlit as st
 import fitz
+import hashlib
 from collections import Counter
 from io import BytesIO
-from PIL import Image
-import hashlib
+from PIL import Image, ImageDraw
+from statistics import median
 
 st.set_page_config(
     page_title="ExamineDoc.ai",
@@ -14,171 +15,173 @@ st.set_page_config(
 
 st.title("ExamineDoc.ai")
 st.subheader("Clarity Through Examination.")
-st.write("Visual document examination and analysis.")
+st.write("Visual document inspection and review.")
 
 st.warning(
-    "Development demonstration only. "
-    "Do not upload confidential or sensitive documents."
+    "Experimental public demo. "
+    "Do not upload personal or confidential documents."
 )
 
-st.divider()
-st.header("Examine a Document")
-
-uploaded_file = st.file_uploader(
-    "Upload a PDF for examination",
+uploaded = st.file_uploader(
+    "Upload a test PDF",
     type=["pdf"]
 )
 
-if uploaded_file is not None:
-    pdf_bytes = uploaded_file.getvalue()
-    file_hash = hashlib.sha256(pdf_bytes).hexdigest()
+if uploaded:
+    data = uploaded.getvalue()
+
+    if len(data) > 20 * 1024 * 1024:
+        st.error("Maximum file size is 20 MB.")
+        st.stop()
 
     try:
-        with fitz.open(
-            stream=pdf_bytes,
-            filetype="pdf"
-        ) as pdf:
+        pdf = fitz.open(stream=data, filetype="pdf")
 
-            if pdf.needs_pass:
-                st.error("Password-protected PDFs are not supported.")
-            elif len(pdf) == 0:
-                st.error("This PDF contains no pages.")
-            else:
-                st.success("Document loaded successfully.")
+        if pdf.needs_pass:
+            st.error("Password-protected PDFs are unsupported.")
+            pdf.close()
+            st.stop()
 
-                st.subheader("Document Information")
-                st.write("Filename:", uploaded_file.name)
-                st.write("Pages:", len(pdf))
-                st.caption(
-                    "SHA-256 fingerprint: " + file_hash
-                )
+        if len(pdf) == 0:
+            st.error("PDF has no pages.")
+            pdf.close()
+            st.stop()
 
-                page_number = st.selectbox(
-                    "Select a page to examine",
-                    range(1, len(pdf) + 1)
-                )
+        st.success("Document loaded.")
+        st.write("Pages:", len(pdf))
+        st.caption(
+            "SHA-256: " + hashlib.sha256(data).hexdigest()
+        )
 
-                page = pdf[page_number - 1]
+        number = st.selectbox(
+            "Select page",
+            range(1, len(pdf) + 1)
+        )
+        page = pdf[number - 1]
 
-                spans = []
-                for block in page.get_text("dict")["blocks"]:
-                    for line in block.get("lines", []):
-                        for span in line.get("spans", []):
-                            if span["text"].strip():
-                                spans.append(span)
+        spans = []
+        for block in page.get_text("dict")["blocks"]:
+            for line in block.get("lines", []):
+                for span in line.get("spans", []):
+                    if span["text"].strip():
+                        spans.append(span)
 
-                font_counts = Counter(
-                    span["font"] for span in spans
-                )
+        fonts = Counter(s["font"] for s in spans)
 
-                st.subheader("Font Inspection")
+        st.subheader("Font Information")
+        st.dataframe(
+            [
+                {"Font": font, "Text spans": count}
+                for font, count in fonts.items()
+            ],
+            hide_index=True
+        )
 
-                if font_counts:
-                    st.dataframe(
-                        [
-                            {
-                                "Font": name,
-                                "Text spans": count
-                            }
-                            for name, count
-                            in font_counts.items()
-                        ],
-                        hide_index=True
-                    )
+        ocr_detected = any(
+            "GlyphLessFont" in s["font"] for s in spans
+        )
 
-                    selected_font = st.selectbox(
-                        "Highlight text using this font",
-                        ["None"] + sorted(font_counts)
-                    )
-                else:
-                    selected_font = "None"
-                    st.info(
-                        "No extractable text found. "
-                        "This may be a scanned PDF."
-                    )
+        if ocr_detected:
+            st.info(
+                "An OCR-style text layer was detected. "
+                "Text geometry may not match the original "
+                "printed font or spacing."
+            )
 
-                st.subheader("Visual Page Examination")
+        st.subheader("Position and Size Review")
 
-                zoom = 1.5
-                pix = page.get_pixmap(
-                    matrix=fitz.Matrix(zoom, zoom),
-                    alpha=False
-                )
+        sizes = [
+            s["size"] for s in spans if s["size"] > 0
+        ]
 
-                image = Image.open(
-                    BytesIO(pix.tobytes("png"))
-                ).convert("RGB")
+        typical_size = median(sizes) if sizes else None
 
-                if selected_font != "None":
-                    overlay_page = fitz.open()
-                    try:
-                        new_page = overlay_page.new_page(
-                            width=page.rect.width,
-                            height=page.rect.height
-                        )
+        flagged = []
 
-                        for span in spans:
-                            if span["font"] == selected_font:
-                                rect = fitz.Rect(span["bbox"])
-                                new_page.draw_rect(
-                                    rect,
-                                    color=(1, 0, 0),
-                                    width=1.5
-                                )
+        if typical_size and not ocr_detected:
+            for s in spans:
+                ratio = s["size"] / typical_size
 
-                        overlay = new_page.get_pixmap(
-                            matrix=fitz.Matrix(zoom, zoom),
-                            alpha=True
-                        )
+                if ratio < 0.7 or ratio > 1.5:
+                    flagged.append({
+                        "bbox": s["bbox"],
+                        "reason": "Unusual text size",
+                        "text": s["text"]
+                    })
 
-                        from PIL import ImageDraw
-                        draw = ImageDraw.Draw(image)
+        if ocr_detected:
+            st.warning(
+                "Automatic font-size flags are disabled "
+                "because OCR text dimensions may not "
+                "represent the scanned document."
+            )
 
-                        for span in spans:
-                            if span["font"] == selected_font:
-                                box = span["bbox"]
-                                draw.rectangle(
-                                    [
-                                        box[0] * zoom,
-                                        box[1] * zoom,
-                                        box[2] * zoom,
-                                        box[3] * zoom
-                                    ],
-                                    outline="red",
-                                    width=3
-                                )
-                    finally:
-                        overlay_page.close()
+        st.write(
+            "Review candidates found:",
+            len(flagged)
+        )
 
-                st.image(
-                    image,
-                    caption=f"Page {page_number}",
-                    use_container_width=True
-                )
+        zoom = 1.5
+        pix = page.get_pixmap(
+            matrix=fitz.Matrix(zoom, zoom),
+            alpha=False
+        )
 
-                st.divider()
-                st.subheader("Extracted Page Text")
-                st.text_area(
-                    "Text extracted from selected page",
-                    page.get_text("text"),
-                    height=220
-                )
+        image = Image.open(
+            BytesIO(pix.tobytes("png"))
+        ).convert("RGB")
 
-                st.info(
-                    "Red rectangles identify text using "
-                    "the selected font. They do not "
-                    "indicate fraud or alteration."
-                )
+        draw = ImageDraw.Draw(image)
+
+        for item in flagged:
+            box = item["bbox"]
+            draw.rectangle(
+                (
+                    box[0] * zoom,
+                    box[1] * zoom,
+                    box[2] * zoom,
+                    box[3] * zoom
+                ),
+                outline="red",
+                width=3
+            )
+
+        st.subheader("Page Preview")
+        st.image(
+            image,
+            use_container_width=True
+        )
+
+        if flagged:
+            st.subheader("Review Candidates")
+            st.dataframe(
+                [
+                    {
+                        "Text": x["text"],
+                        "Reason": x["reason"]
+                    }
+                    for x in flagged
+                ],
+                hide_index=True
+            )
+        else:
+            st.info(
+                "No candidates identified by the "
+                "current text-size rule. This does not "
+                "mean the document is authentic or free "
+                "of irregularities."
+            )
+
+        pdf.close()
 
     except Exception:
         st.error(
-            "Unable to examine this PDF. "
-            "Confirm that it is a valid document."
+            "This PDF could not be processed. "
+            "Use a valid test document."
         )
 
 st.divider()
 st.caption(
-    "ExamineDoc.ai is an experimental examination "
-    "tool, not a certified forensic examiner. "
-    "Its observations are not legal conclusions."
+    "ExamineDoc.ai flags preliminary review candidates. "
+    "It cannot establish fraud, forgery, or authenticity."
 )
