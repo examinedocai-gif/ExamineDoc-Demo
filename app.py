@@ -491,6 +491,44 @@ if uploaded is not None:
 
             st.metric("Pages", len(pdf))
 
+            st.subheader("Document Text Review")
+
+            extracted_pages = extract_document_text(pdf)
+
+            text_page_number = st.selectbox(
+                "Choose a page to review its text",
+                range(1, len(pdf) + 1),
+                key="text_review_page"
+            )
+
+            page_result = extracted_pages[
+                text_page_number - 1
+            ]
+
+            st.caption(
+                f"Page {text_page_number} — "
+                f"{page_result['characters']} "
+                "extracted characters"
+            )
+
+            st.text_area(
+                "Extracted text",
+                value=page_result["text"],
+                height=250,
+                key=f"extracted_text_{text_page_number}"
+            )
+
+            if not page_result["text"].strip():
+                st.info(
+                    "No extractable text was found. "
+                    "This page may require OCR."
+                )
+
+            st.caption(
+                "Extracted text may contain OCR errors. "
+                "Always compare it with the page image."
+            )
+
             st.caption(
                 "SHA-256: " +
                 hashlib.sha256(data).hexdigest()
