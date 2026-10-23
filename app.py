@@ -572,8 +572,37 @@ if uploaded is not None:
             elif view_mode == "Technical Measurements":
                 display_image = annotated
 
+          
             else:
-                display_image = highlighted
+                
+                clean_pix = pdf[number - 1].get_pixmap(
+                    matrix=fitz.Matrix(2, 2),
+                    colorspace=fitz.csRGB,
+                    alpha=False
+                )
+
+                display_image = np.array(
+                    Image.frombytes(
+                        "RGB",
+                        (clean_pix.width, clean_pix.height),
+                        clean_pix.samples
+                    )
+                )
+
+                for finding in layout_findings:
+                    x = int(finding["x"])
+                    y = int(finding["y"])
+                    w = int(finding["width"])
+                    h = int(finding["height"])
+
+                    cv2.rectangle(
+                        display_image,
+                        (x, y),
+                        (x + w, y + h),
+                        (255, 165, 0),
+                        4
+                    )
+ 
 
                 if not layout_findings:
                     st.info(
