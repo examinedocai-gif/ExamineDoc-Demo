@@ -539,12 +539,53 @@ if uploaded is not None:
                 len(regions)
             )
 
+            
             st.subheader("Visual Examination")
 
+            view_mode = st.radio(
+                "Choose document view",
+                [
+                    "Original Document",
+                    "Technical Measurements",
+                    "Review Findings"
+                ],
+                horizontal=True
+            )
+
+            
+            if view_mode == "Original Document":
+                original_pix = pdf[number - 1].get_pixmap(
+                    matrix=fitz.Matrix(2, 2),
+                    colorspace=fitz.csRGB,
+                    alpha=False
+                )
+
+                display_image = np.array(
+                    Image.frombytes(
+                        "RGB",
+                        (original_pix.width, original_pix.height),
+                        original_pix.samples
+                    )
+                )
+
+
+            elif view_mode == "Technical Measurements":
+                display_image = annotated
+
+            else:
+                display_image = highlighted
+
+                if not layout_findings:
+                    st.info(
+                        "No layout review candidates were "
+                        "identified by the current rules."
+                    )
+
             st.image(
-                highlighted,
+                display_image,
                 use_container_width=True
             )
+
 
             st.subheader("Region Measurements")
 
