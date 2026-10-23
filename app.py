@@ -52,6 +52,74 @@ def extract_document_text(pdf):
 
     return results
 
+def review_ocr_quality(page):
+    """
+    Identify indicators that extracted PDF text
+    may require visual verification.
+
+    This is not an OCR accuracy measurement
+    or a document authenticity test.
+    """
+
+    text = page.get_text("text", sort=True)
+    spans = []
+
+    for block in page.get_text("dict")["blocks"]:
+        for line in block.get("lines", []):
+            for span in line.get("spans", []):
+                if span["text"].strip():
+                    spans.append(span)
+
+    has_ocr_font = any(
+        "GlyphLessFont" in span["font"]
+        for span in spans
+    )
+
+    nonempty_lines = [
+        line.strip()
+        for line in text.splitlines()
+        if line.strip()
+    ]
+
+    short_lines = [
+        line for line in nonempty_lines
+        if len(line) <= 2
+    ]
+
+    short_line_ratio = (
+        len(short_lines) / len(nonempty_lines)
+        if nonempty_lines else 0
+    )
+
+    indicators = []
+
+    if has_ocr_font:
+        indicators.append(
+            "OCR-style font detected. Embedded text "
+            "may not reflect original typography."
+        )
+
+    if len(nonempty_lines) >= 10 and short_line_ratio > 0.20:
+        indicators.append(
+            "Many very short extracted lines detected. "
+            "Text ordering or recognition may need review."
+        )
+
+    if not text.strip():
+        indicators.append(
+            "No extractable text found. Image-only "
+            "pages may require OCR."
+        )
+
+    return {
+        "ocr_style_font": has_ocr_font,
+        "nonempty_lines": len(nonempty_lines),
+        "short_line_ratio": short_line_ratio,
+        "indicators": indicators
+    }
+
+
+
 
 
 def analyze_page(page, min_percent):
