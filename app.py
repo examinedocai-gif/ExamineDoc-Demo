@@ -559,6 +559,39 @@ if uploaded is not None:
 
             st.metric("Pages", len(pdf))
 
+            st.subheader("OCR Quality Review")
+
+            quality_page = st.selectbox(
+                "Select page for OCR quality review",
+                range(1, len(pdf) + 1),
+                key="ocr_quality_page"
+            )
+
+            quality = review_ocr_quality(
+                pdf[quality_page - 1]
+            )
+
+            if quality["indicators"]:
+                st.info(
+                    "Text extraction may require "
+                    "visual verification."
+                )
+
+                for indicator in quality["indicators"]:
+                    st.write("• " + indicator)
+            else:
+                st.success(
+                    "No text-quality indicators were "
+                    "triggered by the current checks."
+                )
+
+            st.caption(
+                "These checks do not measure OCR "
+                "accuracy or determine whether the "
+                "document has been altered."
+            )
+
+
             st.subheader("Document Text Review")
 
             extracted_pages = extract_document_text(pdf)
