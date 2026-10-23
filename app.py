@@ -486,6 +486,39 @@ if uploaded is not None:
                 pdf[number - 1], min_percent
             )
 
+            page_width = annotated.shape[1]
+
+            layout_findings = review_layout(
+                regions, page_width
+            )
+
+            st.subheader("Layout Inconsistency Review")
+
+            st.metric(
+                "Potential layout differences",
+                len(layout_findings)
+            )
+
+            if layout_findings:
+                st.dataframe(
+                    [
+                        {
+                            "Reason": item["reason"],
+                            "Left (px)": item["x"],
+                            "Top (px)": item["y"],
+                            "Width (px)": item["width"],
+                            "Height (px)": item["height"]
+                        }
+                        for item in layout_findings
+                    ],
+                    hide_index=True
+                )
+            else:
+                st.info(
+                    "No layout differences met the "
+                    "current review thresholds."
+                )
+
             st.metric(
                 "Detected regions on selected page",
                 len(regions)
