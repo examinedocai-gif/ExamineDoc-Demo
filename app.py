@@ -146,31 +146,7 @@ def review_layout(regions, page_width):
                 "reason": "Unusual text-region height"
             })
 
-    # Compare left-margin positions of long lines.
-    long_lines = [
-        r for r in lines
-        if r[2] >= page_width * 0.65
-    ]
-
-    if len(long_lines) >= 6:
-        left_positions = np.array(
-            [r[0] for r in long_lines],
-            dtype=float
-        )
-
-        median_left = float(
-            np.median(left_positions)
-        )
-
-        for x, y, w, h in long_lines:
-            if abs(x - median_left) > page_width * 0.08:
-                results.append({
-                    "x": x,
-                    "y": y,
-                    "width": w,
-                    "height": h,
-                    "reason": "Unusual left-margin position"
-                })
+    
 
     # Compare vertical gaps between adjacent regions.
     ordered = sorted(lines, key=lambda r: r[1])
