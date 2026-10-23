@@ -33,6 +33,27 @@ def safe_text(value):
     ).decode("ascii")
 
 
+def extract_document_text(pdf):
+    """
+    Extract text from each PDF page while
+    preserving page references.
+    """
+
+    results = []
+
+    for page_number, page in enumerate(pdf, start=1):
+        text = page.get_text("text", sort=True)
+
+        results.append({
+            "page": page_number,
+            "text": text,
+            "characters": len(text)
+        })
+
+    return results
+
+
+
 def analyze_page(page, min_percent):
     pix = page.get_pixmap(
         matrix=fitz.Matrix(2, 2),
