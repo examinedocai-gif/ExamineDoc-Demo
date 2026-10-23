@@ -5,6 +5,8 @@ import cv2
 import numpy as np
 import hashlib
 from PIL import Image
+from io import BytesIO
+from datetime import datetime, timezone
 
 st.set_page_config(
     page_title="ExamineDoc.ai",
@@ -14,11 +16,11 @@ st.set_page_config(
 
 st.title("ExamineDoc.ai")
 st.subheader("Clarity Through Examination.")
-st.write("Scanned document visual examination.")
+st.write("Scanned document examination and reporting.")
 
 st.warning(
     "Public development demo. Use fictional or "
-    "redacted documents only."
+    "fully redacted test documents only."
 )
 
 uploaded = st.file_uploader(
@@ -30,30 +32,26 @@ if uploaded is not None:
     data = uploaded.getvalue()
 
     if len(data) > 20 * 1024 * 1024:
-        st.error("Maximum file size is 20 MB.")
+        st.error("Maximum PDF size is 20 MB.")
         st.stop()
 
     try:
-        with fitz.open(
-            stream=data,
-            filetype="pdf"
-        ) as pdf:
-
+        with fitz.open(stream=data, filetype="pdf") as pdf:
             if pdf.needs_pass:
                 st.error("Password-protected PDFs are unsupported.")
                 st.stop()
 
             if len(pdf) == 0:
-                st.error("PDF contains no pages.")
+                st.error("PDF has no pages.")
                 st.stop()
 
-            st.success("Document loaded.")
+            document_hash = hashlib.sha256(
+                data
+            ).hexdigest()
 
+            st.success("Document loaded.")
             st.write("Total pages:", len(pdf))
-            st.caption(
-                "SHA-256: " +
-                hashlib.sha256(data).hexdigest()
-            )
+            st.caption("SHA-256: " + document_hash)
 
             page_number = st.selectbox(
                 "Select page",
@@ -91,12 +89,9 @@ if uploaded is not None:
 
             st.subheader("Scanned Image Analysis")
 
-            min_width_pct = st.slider(
-                "Minimum text-region width (% of page)",
-                min_value=5,
-                max_value=60,
-                value=15,
-                step=5
+            minimum_percent = st.slider(
+                "Minimum region width (% of page)",
+                5, 60, 15, 5
             )
 
             kernel = cv2.getStructuringElement(
@@ -116,21 +111,17 @@ if uploaded is not None:
                 cv2.CHAIN_APPROX_SIMPLE
             )
 
-            page_height, page_width = gray.shape
-
-            minimum_width = (
-                page_width * min_width_pct / 100
-            )
-
+            height, width = gray.shape
             regions = []
 
             for contour in contours:
-                x, y, w, h = cv2.boundingRect(contour)
+                x, y, w, h = cv2.boundingRect(
+                    contour
+                )
 
                 if (
-                    w >= minimum_width
-                    and h >= 5
-                    and h <= 100
+                    w >= width * minimum_percent / 100
+                    and 5 <= h <= 100
                 ):
                     regions.append((x, y, w, h))
 
@@ -153,65 +144,140 @@ if uploaded is not None:
             )
 
             st.subheader("Visual Examination")
-
             st.image(
                 annotated,
-                caption=(
-                    f"Page {page_number}: "
-                    "Candidate text regions in red"
-                ),
+                caption=f"Page {page_number}",
                 use_container_width=True
             )
 
+            measurements = [
+                {
+                    "Region": index,
+                    "Left": x,
+                    "Top": y,
+                    "Width": w,
+                    "Height": h
+                }
+                for index, (x, y, w, h)
+                in enumerate(regions, start=1)
+            ]
+
             st.subheader("Region Measurements")
 
-            if regions:
-                results = []
-
-                for index, (x, y, w, h) in enumerate(
-                    regions, start=1
-                ):
-                    results.append({
-                        "Region": index,
-                        "Left (px)": x,
-                        "Top (px)": y,
-                        "Width (px)": w,
-                        "Height (px)": h
-                    })
-
+            if measurements:
                 st.dataframe(
-                    results,
+                    measurements,
                     hide_index=True
                 )
-
             else:
                 st.info(
-                    "No regions matched the current "
-                    "detection settings."
+                    "No regions matched the settings."
                 )
 
-            st.info(
-                "Red rectangles indicate image regions "
-                "identified by the detection algorithm. "
-                "They are not evidence of document alteration."
+            st.divider()
+            st.subheader("Download Examination Report")
+
+            report = fitz.open()
+
+            try:
+                report_page = report.new_page(
+                    width=595,
+                    height=842
+                )
+
+                lines = [
+                    "ExamineDoc.ai - Examination Report",
+                    "Clarity Through Examination",
+                    "",
+                    "Generated (UTC): " +
+                    datetime.now(timezone.utc).strftime(
+                        "%Y-%m-%d %H:%M"
+                    ),
+                    "Filename: " + uploaded.name,
+                    "Pages in source: " + str(len(pdf)),
+                    "Page examined: " + str(page_number),
+                    "SHA-256:",
+                    document_hash,
+                    "",
+                    "Candidate regions: " + str(len(regions)),
+                    "Detection threshold: " +
+                    str(minimum_percent) + "% page width",
+                    "",
+                    "Region measurements (pixels):"
+                ]
+
+                for item in measurements[:12]:
+                    lines.append(
+                        "Region {Region}: x={Left}, y={Top}, "
+                        "w={Width}, h={Height}".format(
+                            **item
+                        )
+                    )
+
+                if len(measurements) > 12:
+                    lines.append(
+                        "Additional regions omitted "
+                        "from this summary."
+                    )
+
+                lines.extend([
+                    "",
+                    "LIMITATIONS:",
+                    "Regions indicate detected image shapes.",
+                    "They do not establish alteration, fraud,",
+                    "forgery, or document authenticity."
+                ])
+
+                text = "\n".join(lines)
+
+                report_page.insert_textbox(
+                    fitz.Rect(40, 40, 555, 570),
+                    text,
+                    fontsize=10,
+                    fontname="helv",
+                    lineheight=1.3
+                )
+
+                png_buffer = BytesIO()
+                Image.fromarray(annotated).save(
+                    png_buffer,
+                    format="PNG"
+                )
+
+                report_page.insert_image(
+                    fitz.Rect(45, 585, 550, 800),
+                    stream=png_buffer.getvalue(),
+                    keep_proportion=True
+                )
+
+                report_bytes = report.tobytes()
+
+            finally:
+                report.close()
+
+            st.download_button(
+                "Download PDF Examination Report",
+                data=report_bytes,
+                file_name="ExamineDoc_Examination_Report.pdf",
+                mime="application/pdf"
             )
 
             st.caption(
-                "Measurements use pixels at the current "
-                "rendering resolution. Regions may include "
-                "headings, marks, redactions or joined text."
+                "The report contains preliminary image "
+                "measurements, not a forensic conclusion. "
+                "Only the first 12 regions are listed "
+                "in the summary."
             )
 
     except Exception:
         st.error(
-            "Unable to process this PDF. "
-            "Check that the document is valid."
+            "The PDF could not be processed. "
+            "Use a valid test document."
         )
 
 st.divider()
-
 st.caption(
-    "ExamineDoc.ai is an experimental document "
-    "review tool. It does not establish authenticity, "
-    "forgery, fraud or legal conclusions."
+    "ExamineDoc.ai is experimental software. "
+    "It does not determine authenticity or "
+    "provide legal advice."
 )
