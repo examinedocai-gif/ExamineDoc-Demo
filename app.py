@@ -16,12 +16,311 @@ st.set_page_config(
 
 st.title("ExamineDoc.ai")
 st.subheader("Clarity Through Examination.")
-st.write("Scanned document examination and reporting.")
+st.write("Document examination and evidence reporting.")
 
 st.warning(
-    "Public development demo. Use fictional or "
-    "fully redacted test documents only."
+    "Public development demo. Upload only fictional "
+    "or fully redacted test documents."
 )
+
+MAX_BYTES = 20 * 1024 * 1024
+MAX_PAGES = 20
+
+
+def safe_text(value):
+    return str(value).encode(
+        "ascii", errors="replace"
+    ).decode("ascii")
+
+
+def analyze_page(page, min_percent):
+    pix = page.get_pixmap(
+        matrix=fitz.Matrix(2, 2),
+        colorspace=fitz.csRGB,
+        alpha=False
+    )
+
+    image = np.array(
+        Image.frombytes(
+            "RGB",
+            (pix.width, pix.height),
+            pix.samples
+        )
+    )
+
+    gray = cv2.cvtColor(
+        image, cv2.COLOR_RGB2GRAY
+    )
+
+    _, binary = cv2.threshold(
+        gray, 0, 255,
+        cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
+    )
+
+    kernel = cv2.getStructuringElement(
+        cv2.MORPH_RECT, (25, 2)
+    )
+
+    connected = cv2.morphologyEx(
+        binary, cv2.MORPH_CLOSE, kernel
+    )
+
+    contours, _ = cv2.findContours(
+        connected,
+        cv2.RETR_EXTERNAL,
+        cv2.CHAIN_APPROX_SIMPLE
+    )
+
+    height, width = gray.shape
+    regions = []
+
+    for contour in contours:
+        x, y, w, h = cv2.boundingRect(contour)
+
+        if (
+            w >= width * min_percent / 100
+            and 5 <= h <= 100
+        ):
+            regions.append((x, y, w, h))
+
+    regions.sort(key=lambda r: (r[1], r[0]))
+
+    annotated = image.copy()
+
+    for x, y, w, h in regions:
+        cv2.rectangle(
+            annotated,
+            (x, y),
+            (x + w, y + h),
+            (255, 0, 0),
+            2
+        )
+
+    return annotated, regions
+
+
+def write_lines(page, lines, top=50):
+    y = top
+
+    for line in lines:
+        if y > 795:
+            break
+
+        page.insert_text(
+            (45, y),
+            safe_text(line)[:95],
+            fontsize=10,
+            fontname="helv"
+        )
+        y += 18
+
+
+def build_report(data, filename, min_percent):
+    source_hash = hashlib.sha256(data).hexdigest()
+    report = fitz.open()
+
+    with fitz.open(
+        stream=data, filetype="pdf"
+    ) as source:
+
+        if source.needs_pass:
+            raise ValueError("Password-protected PDF")
+
+        if not 1 <= len(source) <= MAX_PAGES:
+            raise ValueError("Unsupported page count")
+
+        # Cover page
+        cover = report.new_page(
+            width=595, height=842
+        )
+
+        cover.insert_text(
+            (45, 65),
+            "ExamineDoc.ai",
+            fontsize=25,
+            fontname="hebo"
+        )
+
+        cover.insert_text(
+            (45, 95),
+            "Clarity Through Examination",
+            fontsize=13
+        )
+
+        cover.insert_text(
+            (45, 150),
+            "DOCUMENT EXAMINATION REPORT",
+            fontsize=16,
+            fontname="hebo"
+        )
+
+        created = datetime.now(
+            timezone.utc
+        ).strftime("%Y-%m-%d %H:%M UTC")
+
+        cover_lines = [
+            "",
+            "Report type: Automated image-region review",
+            "Generated: " + created,
+            "Filename: " + filename[:65],
+            "Source pages: " + str(len(source)),
+            "Rendering scale: 2x",
+            "Minimum region width: " +
+            str(min_percent) + "%",
+            "",
+            "Source SHA-256:",
+            source_hash[:32],
+            source_hash[32:],
+            "",
+            "METHOD:",
+            "Grayscale conversion and Otsu thresholding.",
+            "Horizontal morphological closing.",
+            "Contour-based image region detection.",
+            "",
+            "IMPORTANT LIMITATIONS:",
+            "Detected regions are not confirmed anomalies.",
+            "Scanning artifacts can affect results.",
+            "This report does not establish document",
+            "authenticity, forgery, alteration or fraud.",
+            "It is not a certified forensic opinion."
+        ]
+
+        write_lines(cover, cover_lines, top=185)
+
+        total_regions = 0
+
+        for page_index, source_page in enumerate(
+            source, start=1
+        ):
+            annotated, regions = analyze_page(
+                source_page, min_percent
+            )
+
+            total_regions += len(regions)
+
+            # Full-page image
+            image_page = report.new_page(
+                width=595, height=842
+            )
+
+            image_page.insert_text(
+                (40, 35),
+                f"PAGE {page_index} - ANNOTATED IMAGE",
+                fontsize=14,
+                fontname="hebo"
+            )
+
+            buffer = BytesIO()
+            Image.fromarray(annotated).save(
+                buffer, format="PNG"
+            )
+
+            image_page.insert_image(
+                fitz.Rect(35, 55, 560, 780),
+                stream=buffer.getvalue(),
+                keep_proportion=True
+            )
+
+            image_page.insert_text(
+                (40, 815),
+                f"Detected regions: {len(regions)}",
+                fontsize=9
+            )
+
+            # Measurement pages
+            rows_per_page = 30
+
+            if regions:
+                for start in range(
+                    0, len(regions), rows_per_page
+                ):
+                    measurement_page = report.new_page(
+                        width=595, height=842
+                    )
+
+                    measurement_page.insert_text(
+                        (40, 45),
+                        f"PAGE {page_index} - REGION MEASUREMENTS",
+                        fontsize=13,
+                        fontname="hebo"
+                    )
+
+                    lines = [
+                        "Coordinates are rendered-image pixels.",
+                        "Scale: 2x; positions measured from top-left.",
+                        "",
+                        "ID       Left       Top       Width       Height"
+                    ]
+
+                    for index in range(
+                        start,
+                        min(start + rows_per_page, len(regions))
+                    ):
+                        x, y, w, h = regions[index]
+
+                        lines.append(
+                            f"{index + 1:<8} "
+                            f"{x:<10} {y:<10} "
+                            f"{w:<11} {h}"
+                        )
+
+                    lines.extend([
+                        "",
+                        "Measurements describe image regions.",
+                        "They do not establish document alteration."
+                    ])
+
+                    write_lines(
+                        measurement_page, lines, top=78
+                    )
+
+            else:
+                measurement_page = report.new_page(
+                    width=595, height=842
+                )
+                write_lines(
+                    measurement_page,
+                    [
+                        f"Page {page_index}: Region measurements",
+                        "",
+                        "No regions met the detection threshold.",
+                        "This does not establish authenticity."
+                    ]
+                )
+
+        # Summary appended at end
+        summary = report.new_page(
+            width=595, height=842
+        )
+
+        write_lines(
+            summary,
+            [
+                "EXAMINATION SUMMARY",
+                "",
+                f"Pages examined: {len(source)}",
+                f"Total detected regions: {total_regions}",
+                "",
+                "This document records automated",
+                "image-region measurements.",
+                "",
+                "Human review is required to interpret",
+                "the significance of any observation.",
+                "",
+                "Original source PDF not modified.",
+                "Source fingerprint recorded on cover.",
+                "",
+                "End of report."
+            ]
+        )
+
+    try:
+        return report.tobytes(
+            garbage=4, deflate=True
+        )
+    finally:
+        report.close()
+
 
 uploaded = st.file_uploader(
     "Upload a test PDF",
@@ -31,253 +330,112 @@ uploaded = st.file_uploader(
 if uploaded is not None:
     data = uploaded.getvalue()
 
-    if len(data) > 20 * 1024 * 1024:
-        st.error("Maximum PDF size is 20 MB.")
+    if len(data) > MAX_BYTES:
+        st.error("Maximum file size is 20 MB.")
         st.stop()
 
+    min_percent = st.slider(
+        "Minimum region width (% of page)",
+        5, 60, 15, 5
+    )
+
     try:
-        with fitz.open(stream=data, filetype="pdf") as pdf:
+        with fitz.open(
+            stream=data, filetype="pdf"
+        ) as pdf:
+
             if pdf.needs_pass:
                 st.error("Password-protected PDFs are unsupported.")
                 st.stop()
 
-            if len(pdf) == 0:
-                st.error("PDF has no pages.")
+            if not 1 <= len(pdf) <= MAX_PAGES:
+                st.error("Use a PDF containing 1 to 20 pages.")
                 st.stop()
 
-            document_hash = hashlib.sha256(
-                data
-            ).hexdigest()
+            st.success("Document loaded successfully.")
 
-            st.success("Document loaded.")
-            st.write("Total pages:", len(pdf))
-            st.caption("SHA-256: " + document_hash)
+            st.metric("Pages", len(pdf))
 
-            page_number = st.selectbox(
-                "Select page",
+            st.caption(
+                "SHA-256: " +
+                hashlib.sha256(data).hexdigest()
+            )
+
+            number = st.selectbox(
+                "Select page to preview",
                 range(1, len(pdf) + 1)
             )
 
-            page = pdf[page_number - 1]
-
-            pix = page.get_pixmap(
-                matrix=fitz.Matrix(2, 2),
-                colorspace=fitz.csRGB,
-                alpha=False
+            annotated, regions = analyze_page(
+                pdf[number - 1], min_percent
             )
-
-            image = np.array(
-                Image.frombytes(
-                    "RGB",
-                    (pix.width, pix.height),
-                    pix.samples
-                )
-            )
-
-            gray = cv2.cvtColor(
-                image,
-                cv2.COLOR_RGB2GRAY
-            )
-
-            _, binary = cv2.threshold(
-                gray,
-                0,
-                255,
-                cv2.THRESH_BINARY_INV +
-                cv2.THRESH_OTSU
-            )
-
-            st.subheader("Scanned Image Analysis")
-
-            minimum_percent = st.slider(
-                "Minimum region width (% of page)",
-                5, 60, 15, 5
-            )
-
-            kernel = cv2.getStructuringElement(
-                cv2.MORPH_RECT,
-                (25, 2)
-            )
-
-            connected = cv2.morphologyEx(
-                binary,
-                cv2.MORPH_CLOSE,
-                kernel
-            )
-
-            contours, _ = cv2.findContours(
-                connected,
-                cv2.RETR_EXTERNAL,
-                cv2.CHAIN_APPROX_SIMPLE
-            )
-
-            height, width = gray.shape
-            regions = []
-
-            for contour in contours:
-                x, y, w, h = cv2.boundingRect(
-                    contour
-                )
-
-                if (
-                    w >= width * minimum_percent / 100
-                    and 5 <= h <= 100
-                ):
-                    regions.append((x, y, w, h))
-
-            regions.sort(key=lambda r: (r[1], r[0]))
-
-            annotated = image.copy()
-
-            for x, y, w, h in regions:
-                cv2.rectangle(
-                    annotated,
-                    (x, y),
-                    (x + w, y + h),
-                    (255, 0, 0),
-                    2
-                )
 
             st.metric(
-                "Detected candidate regions",
+                "Detected regions on selected page",
                 len(regions)
             )
 
             st.subheader("Visual Examination")
+
             st.image(
                 annotated,
-                caption=f"Page {page_number}",
                 use_container_width=True
             )
 
-            measurements = [
-                {
-                    "Region": index,
-                    "Left": x,
-                    "Top": y,
-                    "Width": w,
-                    "Height": h
-                }
-                for index, (x, y, w, h)
-                in enumerate(regions, start=1)
-            ]
-
             st.subheader("Region Measurements")
 
-            if measurements:
-                st.dataframe(
-                    measurements,
-                    hide_index=True
+            rows = [
+                {
+                    "Region": i,
+                    "Left (px)": x,
+                    "Top (px)": y,
+                    "Width (px)": w,
+                    "Height (px)": h
+                }
+                for i, (x, y, w, h) in enumerate(
+                    regions, start=1
                 )
+            ]
+
+            if rows:
+                st.dataframe(rows, hide_index=True)
             else:
                 st.info(
-                    "No regions matched the settings."
+                    "No regions met the detection threshold."
                 )
 
-            st.divider()
-            st.subheader("Download Examination Report")
+        st.divider()
+        st.subheader("Professional PDF Report")
 
-            report = fitz.open()
+        st.write(
+            "Generate a report covering every page, "
+            "with full-page annotated images and "
+            "complete region measurements."
+        )
 
-            try:
-                report_page = report.new_page(
-                    width=595,
-                    height=842
+        if st.button("Generate Examination Report"):
+            with st.spinner("Examining document pages..."):
+                report_bytes = build_report(
+                    data, uploaded.name, min_percent
                 )
-
-                lines = [
-                    "ExamineDoc.ai - Examination Report",
-                    "Clarity Through Examination",
-                    "",
-                    "Generated (UTC): " +
-                    datetime.now(timezone.utc).strftime(
-                        "%Y-%m-%d %H:%M"
-                    ),
-                    "Filename: " + uploaded.name,
-                    "Pages in source: " + str(len(pdf)),
-                    "Page examined: " + str(page_number),
-                    "SHA-256:",
-                    document_hash,
-                    "",
-                    "Candidate regions: " + str(len(regions)),
-                    "Detection threshold: " +
-                    str(minimum_percent) + "% page width",
-                    "",
-                    "Region measurements (pixels):"
-                ]
-
-                for item in measurements[:12]:
-                    lines.append(
-                        "Region {Region}: x={Left}, y={Top}, "
-                        "w={Width}, h={Height}".format(
-                            **item
-                        )
-                    )
-
-                if len(measurements) > 12:
-                    lines.append(
-                        "Additional regions omitted "
-                        "from this summary."
-                    )
-
-                lines.extend([
-                    "",
-                    "LIMITATIONS:",
-                    "Regions indicate detected image shapes.",
-                    "They do not establish alteration, fraud,",
-                    "forgery, or document authenticity."
-                ])
-
-                text = "\n".join(lines)
-
-                report_page.insert_textbox(
-                    fitz.Rect(40, 40, 555, 570),
-                    text,
-                    fontsize=10,
-                    fontname="helv",
-                    lineheight=1.3
-                )
-
-                png_buffer = BytesIO()
-                Image.fromarray(annotated).save(
-                    png_buffer,
-                    format="PNG"
-                )
-
-                report_page.insert_image(
-                    fitz.Rect(45, 585, 550, 800),
-                    stream=png_buffer.getvalue(),
-                    keep_proportion=True
-                )
-
-                report_bytes = report.tobytes()
-
-            finally:
-                report.close()
 
             st.download_button(
-                "Download PDF Examination Report",
+                "Download Complete PDF Report",
                 data=report_bytes,
-                file_name="ExamineDoc_Examination_Report.pdf",
+                file_name="ExamineDoc_Full_Report.pdf",
                 mime="application/pdf"
-            )
-
-            st.caption(
-                "The report contains preliminary image "
-                "measurements, not a forensic conclusion. "
-                "Only the first 12 regions are listed "
-                "in the summary."
             )
 
     except Exception:
         st.error(
-            "The PDF could not be processed. "
-            "Use a valid test document."
+            "Unable to process the PDF. "
+            "Check that it is a valid test document."
         )
 
 st.divider()
+
 st.caption(
-    "ExamineDoc.ai is experimental software. "
-    "It does not determine authenticity or "
-    "provide legal advice."
+    "ExamineDoc.ai is an experimental document "
+    "review tool. Detected regions do not establish "
+    "fraud, forgery or authenticity."
 )
