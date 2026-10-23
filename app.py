@@ -492,6 +492,23 @@ if uploaded is not None:
                 regions, page_width
             )
 
+            # Highlight layout review candidates in orange
+            highlighted = annotated.copy()
+
+            for finding in layout_findings:
+                x = int(finding["x"])
+                y = int(finding["y"])
+                w = int(finding["width"])
+                h = int(finding["height"])
+
+                cv2.rectangle(
+                    highlighted,
+                    (x, y),
+                    (x + w, y + h),
+                    (255, 165, 0),
+                    4
+                )
+
             st.subheader("Layout Inconsistency Review")
 
             st.metric(
@@ -527,7 +544,7 @@ if uploaded is not None:
             st.subheader("Visual Examination")
 
             st.image(
-                annotated,
+                highlighted,
                 use_container_width=True
             )
 
