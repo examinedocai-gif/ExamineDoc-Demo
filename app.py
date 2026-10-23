@@ -312,6 +312,28 @@ def build_report(data, filename, min_percent):
                 source_page, min_percent
             )
 
+            # Identify layout review candidates
+            page_width = annotated.shape[1]
+
+            layout_findings = review_layout(
+                regions, page_width
+            )
+
+            # Add orange rectangles to the report image
+            for finding in layout_findings:
+                x = int(finding["x"])
+                y = int(finding["y"])
+                w = int(finding["width"])
+                h = int(finding["height"])
+
+                cv2.rectangle(
+                    annotated,
+                    (x, y),
+                    (x + w, y + h),
+                    (255, 165, 0),
+                    4
+                )
+
             total_regions += len(regions)
 
             # Full-page image
