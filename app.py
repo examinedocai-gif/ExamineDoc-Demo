@@ -99,6 +99,122 @@ def analyze_page(page, min_percent):
     return annotated, regions
 
 
+
+
+def review_layout(regions, page_width):
+    """
+    Identify statistical layout outliers.
+    These are review candidates, not evidence
+    of alteration or forgery.
+    """
+
+    results = []
+
+    # Only compare likely text-line regions.
+    # Exclude unusually tall shapes and short marks.
+    lines = [
+        (x, y, w, h)
+        for x, y, w, h in regions
+        if 10 <= h <= 45
+        and w >= page_width * 0.30
+    ]
+
+    if len(lines) < 6:
+        return results
+
+    heights = np.array(
+        [r[3] for r in lines],
+        dtype=float
+    )
+
+    median_height = float(np.median(heights))
+
+    # Flag substantially unusual line heights.
+    for x, y, w, h in lines:
+        if (
+            median_height > 0
+            and (
+                h < median_height * 0.70
+                or h > median_height * 1.40
+            )
+        ):
+            results.append({
+                "x": x,
+                "y": y,
+                "width": w,
+                "height": h,
+                "reason": "Unusual text-region height"
+            })
+
+    # Compare left-margin positions of long lines.
+    long_lines = [
+        r for r in lines
+        if r[2] >= page_width * 0.65
+    ]
+
+    if len(long_lines) >= 6:
+        left_positions = np.array(
+            [r[0] for r in long_lines],
+            dtype=float
+        )
+
+        median_left = float(
+            np.median(left_positions)
+        )
+
+        for x, y, w, h in long_lines:
+            if abs(x - median_left) > page_width * 0.08:
+                results.append({
+                    "x": x,
+                    "y": y,
+                    "width": w,
+                    "height": h,
+                    "reason": "Unusual left-margin position"
+                })
+
+    # Compare vertical gaps between adjacent regions.
+    ordered = sorted(lines, key=lambda r: r[1])
+
+    gaps = []
+    for previous, current in zip(
+        ordered, ordered[1:]
+    ):
+        gap = current[1] - (
+            previous[1] + previous[3]
+        )
+
+        if 0 <= gap <= median_height * 3:
+            gaps.append(gap)
+
+    if len(gaps) >= 5:
+        median_gap = float(np.median(gaps))
+
+        for previous, current in zip(
+            ordered, ordered[1:]
+        ):
+            gap = current[1] - (
+                previous[1] + previous[3]
+            )
+
+            if (
+                median_gap > 2
+                and gap > median_gap * 2.5
+                and gap <= median_height * 3
+            ):
+                x, y, w, h = current
+
+                results.append({
+                    "x": x,
+                    "y": y,
+                    "width": w,
+                    "height": h,
+                    "reason": "Unusual vertical spacing"
+                })
+
+    return results
+
+
+
 def write_lines(page, lines, top=50):
     y = top
 
