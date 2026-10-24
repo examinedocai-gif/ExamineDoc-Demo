@@ -1052,6 +1052,38 @@ if uploaded is not None:
                 min_percent
             )
 
+    
+            comparison_results = compare_scanned_typography(
+                typography_results
+            )
+
+            st.subheader("Typography Comparison Review")
+
+            if comparison_results:
+                st.write(
+                    f"{len(comparison_results)} statistical "
+                    "measurement outliers identified."
+                )
+
+                st.dataframe(
+                    comparison_results,
+                    hide_index=True,
+                    use_container_width=True
+                )
+            else:
+                st.info(
+                    "No statistical measurement outliers "
+                    "were identified within eligible "
+                    "comparison groups."
+                )
+
+            st.caption(
+                "These are experimental statistical "
+                "comparisons, not confirmed font changes, "
+                "document alterations, or forensic findings."
+            )
+ 
+            
             if typography_results:
                 st.dataframe(
                     typography_results,
