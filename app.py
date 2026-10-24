@@ -1196,6 +1196,44 @@ if uploaded is not None:
                 len(regions)
             )
 
+
+            
+            st.subheader("Repeated-Word Review")
+
+            repeated_words = find_repeated_words(pdf)
+
+            if repeated_words:
+                selected_word = st.selectbox(
+                    "Choose a repeated word",
+                    sorted(repeated_words.keys()),
+                    key="repeated_word_selection"
+                )
+
+                locations = repeated_words[selected_word]
+
+                st.write(
+                    f"'{selected_word}' appears "
+                    f"{len(locations)} times in the PDF text layer."
+                )
+
+                st.dataframe(
+                    locations,
+                    hide_index=True,
+                    use_container_width=True
+                )
+
+                st.caption(
+                    "Word locations are based on PDF text "
+                    "or OCR and require visual verification. "
+                    "Repeated words are not evidence of alteration."
+                )
+            else:
+                st.info(
+                    "No repeated words were found using "
+                    "the current extraction settings."
+                )
+
+
             
             st.subheader("Word-Level Image Measurements")
 
