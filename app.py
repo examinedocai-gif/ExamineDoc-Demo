@@ -654,6 +654,37 @@ if uploaded is not None:
             st.success("Document loaded successfully.")
 
             st.metric("Pages", len(pdf))
+   
+            st.subheader("Document Type Detection")
+
+            document_types = []
+
+            for page_index, current_page in enumerate(
+                pdf, start=1
+            ):
+                result = detect_document_type(
+                    current_page
+                )
+
+                document_types.append({
+                    "Page": page_index,
+                    "Detected type": result["type"],
+                    "Text found": result["has_text"],
+                    "Image blocks found": result["has_images"],
+                    "OCR-style font": result["ocr_style_font"]
+                })
+
+            st.dataframe(
+                document_types,
+                hide_index=True,
+                use_container_width=True
+            )
+
+            st.caption(
+                "Page classification is preliminary. "
+                "A PDF may contain different text and image "
+                "structures that require further examination."
+            )
 
             st.subheader("OCR Quality Review")
 
