@@ -512,6 +512,55 @@ def measure_word_regions(page):
 
 
 
+def find_repeated_words(pdf, minimum_length=4):
+    """
+    Locate repeated words in a PDF text layer.
+
+    Returns word positions and page references.
+    OCR text and coordinates remain unverified.
+    """
+
+    from collections import defaultdict
+    import re
+
+    occurrences = defaultdict(list)
+
+    for page_number, page in enumerate(pdf, start=1):
+        words = page.get_text("words", sort=True)
+
+        for word in words:
+            x0, y0, x1, y1, text = word[:5]
+
+            # Remove punctuation around words.
+            cleaned = re.sub(
+                r"^[^\w]+|[^\w]+$",
+                "",
+                text
+            ).casefold()
+
+            if (
+                len(cleaned) < minimum_length
+                or not any(c.isalpha() for c in cleaned)
+            ):
+                continue
+
+            occurrences[cleaned].append({
+                "Page": page_number,
+                "Left": round(x0, 2),
+                "Top": round(y0, 2),
+                "Right": round(x1, 2),
+                "Bottom": round(y1, 2),
+                "Original text": text
+            })
+
+    return {
+        word: locations
+        for word, locations in occurrences.items()
+        if len(locations) >= 2
+    }
+
+
+
 
 
 def analyze_page(page, min_percent):
