@@ -560,6 +560,51 @@ def find_repeated_words(pdf, minimum_length=4):
     }
 
 
+def crop_word_image(pdf, location, zoom=3):
+    """
+    Crop a word's printed appearance from a PDF.
+    OCR coordinates may be inaccurate.
+    """
+
+    page = pdf[location["Page"] - 1]
+
+    rect = fitz.Rect(
+        location["Left"],
+        location["Top"],
+        location["Right"],
+        location["Bottom"]
+    )
+
+    rect = fitz.Rect(
+        rect.x0 - 3,
+        rect.y0 - 3,
+        rect.x1 + 3,
+        rect.y1 + 3
+    )
+
+    rect = rect & page.rect
+
+    if rect.is_empty or rect.is_infinite:
+        return None
+
+    pix = page.get_pixmap(
+        matrix=fitz.Matrix(zoom, zoom),
+        clip=rect,
+        colorspace=fitz.csRGB,
+        alpha=False
+    )
+
+    if pix.width == 0 or pix.height == 0:
+        return None
+
+    return Image.frombytes(
+        "RGB",
+        (pix.width, pix.height),
+        pix.samples
+    )
+
+
+
 
 
 
