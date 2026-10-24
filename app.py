@@ -320,6 +320,96 @@ def measure_scanned_typography(page, min_percent=15):
 
 
 
+def compare_scanned_typography(measurements):
+    """
+    Compare similarly sized text regions.
+
+    Return measurement outliers for technical review.
+    Results are not evidence of document alteration.
+    """
+
+    results = []
+
+    # Compare only reasonably long text regions.
+    # This reduces comparisons with short headings.
+    comparable = [
+        item for item in measurements
+        if item["Width (px)"] >= 500
+        and 20 <= item["Height (px)"] <= 40
+    ]
+
+    # Avoid drawing conclusions from tiny samples.
+    if len(comparable) < 8:
+        return results
+
+    # Group similar line heights together.
+    groups = {}
+
+    for item in comparable:
+        height = item["Height (px)"]
+
+        if height <= 25:
+            group = "20-25 px"
+        elif height <= 30:
+            group = "26-30 px"
+        else:
+            group = "31-40 px"
+
+        groups.setdefault(group, []).append(item)
+
+    for group_name, items in groups.items():
+
+        if len(items) < 6:
+            continue
+
+        for metric in [
+            "Dark pixel ratio",
+            "Sharpness measure"
+        ]:
+            values = np.array(
+                [item[metric] for item in items],
+                dtype=float
+            )
+
+            median_value = float(np.median(values))
+            deviations = np.abs(values - median_value)
+            mad = float(np.median(deviations))
+
+            # A zero MAD cannot support this rule.
+            if mad <= 1e-9:
+                continue
+
+            for item in items:
+                difference = abs(
+                    item[metric] - median_value
+                )
+
+                robust_score = (
+                    0.6745 * difference / mad
+                )
+
+                if robust_score > 3.5:
+                    results.append({
+                        "Group": group_name,
+                        "Measurement": metric,
+                        "Observed value": item[metric],
+                        "Group median": round(
+                            median_value, 4
+                        ),
+                        "Robust score": round(
+                            robust_score, 2
+                        ),
+                        "Left (px)": item["Left (px)"],
+                        "Top (px)": item["Top (px)"],
+                        "Width (px)": item["Width (px)"],
+                        "Height (px)": item["Height (px)"],
+                        "Status": "Technical review only"
+                    })
+
+    return results
+
+
+
 
 def analyze_page(page, min_percent):
     pix = page.get_pixmap(
