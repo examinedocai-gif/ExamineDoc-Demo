@@ -169,6 +169,54 @@ def review_ocr_quality(page):
 
 
 
+def detect_document_type(page):
+    """
+    Classify a PDF page by its text and image structure.
+    This is a preliminary technical classification.
+    """
+
+    blocks = page.get_text("dict")["blocks"]
+
+    has_images = any(
+        block.get("type") == 1
+        for block in blocks
+    )
+
+    spans = []
+
+    for block in blocks:
+        for line in block.get("lines", []):
+            for span in line.get("spans", []):
+                if span.get("text", "").strip():
+                    spans.append(span)
+
+    has_text = bool(spans)
+
+    has_ocr = any(
+        "GlyphLessFont" in span.get("font", "")
+        for span in spans
+    )
+
+    if has_ocr:
+        doc_type = "Scanned/OCR-style PDF"
+    elif has_images and has_text:
+        doc_type = "Mixed image and text PDF"
+    elif has_images:
+        doc_type = "Image-only PDF"
+    elif has_text:
+        doc_type = "Digital text PDF"
+    else:
+        doc_type = "Unclassified PDF page"
+
+    return {
+        "type": doc_type,
+        "has_images": has_images,
+        "has_text": has_text,
+        "ocr_style_font": has_ocr
+    }
+
+
+
 
 def analyze_page(page, min_percent):
     pix = page.get_pixmap(
