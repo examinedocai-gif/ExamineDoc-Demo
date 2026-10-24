@@ -954,7 +954,33 @@ if uploaded is not None:
                 len(regions)
             )
 
-            
+           
+            st.subheader("Scanned Typography Measurements")
+
+            typography_results = measure_scanned_typography(
+                pdf[number - 1],
+                min_percent
+            )
+
+            if typography_results:
+                st.dataframe(
+                    typography_results,
+                    hide_index=True,
+                    use_container_width=True
+                )
+
+                st.caption(
+                    "These measurements describe image "
+                    "characteristics of detected regions. "
+                    "Differences do not establish font "
+                    "alterations or document tampering."
+                )
+            else:
+                st.info(
+                    "No suitable text regions were found "
+                    "for typography measurements."
+                )
+ 
             st.subheader("Visual Examination")
 
             view_mode = st.radio(
