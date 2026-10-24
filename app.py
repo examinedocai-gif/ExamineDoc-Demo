@@ -1147,7 +1147,39 @@ if uploaded is not None:
                 len(regions)
             )
 
-           
+            
+            st.subheader("Word-Level Image Measurements")
+
+            word_results = measure_word_regions(
+                pdf[number - 1]
+            )
+
+            st.metric(
+                "Candidate word-sized regions",
+                len(word_results)
+            )
+
+            if word_results:
+                st.dataframe(
+                    word_results,
+                    hide_index=True,
+                    use_container_width=True
+                )
+            else:
+                st.info(
+                    "No word-sized image regions matched "
+                    "the current detection settings."
+                )
+
+            st.caption(
+                "These are candidate word-sized shapes, "
+                "not verified words or suspicious alterations. "
+                "Measurements can be affected by scanning, "
+                "punctuation, and connected characters."
+            )
+
+
+            
             st.subheader("Scanned Typography Measurements")
 
             typography_results = measure_scanned_typography(
