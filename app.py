@@ -409,6 +409,109 @@ def compare_scanned_typography(measurements):
     return results
 
 
+def measure_word_regions(page):
+    """
+    Detect candidate word-sized image regions
+    in a scanned PDF.
+
+    These measurements do not determine whether
+    text was changed or altered.
+    """
+
+    pix = page.get_pixmap(
+        matrix=fitz.Matrix(2, 2),
+        colorspace=fitz.csRGB,
+        alpha=False
+    )
+
+    image = np.array(
+        Image.frombytes(
+            "RGB",
+            (pix.width, pix.height),
+            pix.samples
+        )
+    )
+
+    gray = cv2.cvtColor(
+        image,
+        cv2.COLOR_RGB2GRAY
+    )
+
+    _, binary = cv2.threshold(
+        gray,
+        0,
+        255,
+        cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
+    )
+
+    # Connect nearby printed characters.
+    kernel = cv2.getStructuringElement(
+        cv2.MORPH_RECT,
+        (9, 2)
+    )
+
+    connected = cv2.morphologyEx(
+        binary,
+        cv2.MORPH_CLOSE,
+        kernel
+    )
+
+    contours, _ = cv2.findContours(
+        connected,
+        cv2.RETR_EXTERNAL,
+        cv2.CHAIN_APPROX_SIMPLE
+    )
+
+    measurements = []
+
+    for contour in contours:
+        x, y, w, h = cv2.boundingRect(contour)
+
+        # Approximate word-sized regions.
+        if not (
+            15 <= w <= 250
+            and 8 <= h <= 45
+        ):
+            continue
+
+        region_gray = gray[y:y+h, x:x+w]
+        region_binary = binary[y:y+h, x:x+w]
+
+        if region_gray.size == 0:
+            continue
+
+        darkness = float(
+            np.count_nonzero(region_binary)
+            / region_binary.size
+        )
+
+        sharpness = float(
+            cv2.Laplacian(
+                region_gray,
+                cv2.CV_64F
+            ).var()
+        )
+
+        measurements.append({
+            "Left (px)": x,
+            "Top (px)": y,
+            "Width (px)": w,
+            "Height (px)": h,
+            "Dark pixel ratio": round(darkness, 4),
+            "Sharpness": round(sharpness, 2)
+        })
+
+    measurements.sort(
+        key=lambda item: (
+            item["Top (px)"],
+            item["Left (px)"]
+        )
+    )
+
+    return measurements
+
+
+
 
 
 def analyze_page(page, min_percent):
