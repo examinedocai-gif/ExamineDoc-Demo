@@ -32,6 +32,54 @@ def safe_text(value):
         "ascii", errors="replace"
     ).decode("ascii")
 
+import re
+
+def extract_names_and_dates(extracted_pages):
+    """
+    Collect possible names and dates from PDF text.
+    Results require visual verification and are
+    not automatically considered inconsistencies.
+    """
+
+    results = []
+
+    date_pattern = re.compile(
+        r"\b(?:January|February|March|April|May|June|"
+        r"July|August|September|October|November|December)"
+        r"\s+\d{1,2},?\s+\d{4}\b"
+        r"|\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b",
+        re.IGNORECASE
+    )
+
+    name_pattern = re.compile(
+        r"\b[A-Z][a-z]+\s+[A-Z][a-z]+"
+        r"(?:\s+[A-Z][a-z]+)?\b"
+    )
+
+    for page in extracted_pages:
+        page_number = page["page"]
+        text = page["text"]
+
+        for match in date_pattern.finditer(text):
+            results.append({
+                "Page": page_number,
+                "Type": "Date",
+                "Extracted value": match.group(),
+                "Review status": "Unverified"
+            })
+
+        for match in name_pattern.finditer(text):
+            results.append({
+                "Page": page_number,
+                "Type": "Possible name",
+                "Extracted value": match.group(),
+                "Review status": "Unverified"
+            })
+
+    return results
+
+
+
 
 def extract_document_text(pdf):
     """
