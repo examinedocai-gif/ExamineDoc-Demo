@@ -217,6 +217,109 @@ def detect_document_type(page):
 
 
 
+def measure_scanned_typography(page, min_percent=15):
+    """
+    Measure visible characteristics of detected
+    regions in a scanned document.
+
+    These are image measurements, not evidence
+    of altered fonts or document tampering.
+    """
+
+    pix = page.get_pixmap(
+        matrix=fitz.Matrix(2, 2),
+        colorspace=fitz.csRGB,
+        alpha=False
+    )
+
+    image = np.array(
+        Image.frombytes(
+            "RGB",
+            (pix.width, pix.height),
+            pix.samples
+        )
+    )
+
+    gray = cv2.cvtColor(
+        image,
+        cv2.COLOR_RGB2GRAY
+    )
+
+    _, binary = cv2.threshold(
+        gray, 0, 255,
+        cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
+    )
+
+    kernel = cv2.getStructuringElement(
+        cv2.MORPH_RECT,
+        (25, 2)
+    )
+
+    connected = cv2.morphologyEx(
+        binary,
+        cv2.MORPH_CLOSE,
+        kernel
+    )
+
+    contours, _ = cv2.findContours(
+        connected,
+        cv2.RETR_EXTERNAL,
+        cv2.CHAIN_APPROX_SIMPLE
+    )
+
+    page_height, page_width = gray.shape
+    minimum_width = page_width * min_percent / 100
+
+    measurements = []
+
+    for contour in contours:
+        x, y, w, h = cv2.boundingRect(contour)
+
+        if not (
+            w >= minimum_width
+            and 10 <= h <= 45
+        ):
+            continue
+
+        region_gray = gray[y:y+h, x:x+w]
+        region_binary = binary[y:y+h, x:x+w]
+
+        dark_pixel_ratio = float(
+            np.count_nonzero(region_binary)
+            / region_binary.size
+        )
+
+        sharpness = float(
+            cv2.Laplacian(
+                region_gray,
+                cv2.CV_64F
+            ).var()
+        )
+
+        measurements.append({
+            "Left (px)": x,
+            "Top (px)": y,
+            "Width (px)": w,
+            "Height (px)": h,
+            "Dark pixel ratio": round(
+                dark_pixel_ratio, 4
+            ),
+            "Sharpness measure": round(
+                sharpness, 2
+            )
+        })
+
+    measurements.sort(
+        key=lambda item: (
+            item["Top (px)"],
+            item["Left (px)"]
+        )
+    )
+
+    return measurements
+
+
+
 
 def analyze_page(page, min_percent):
     pix = page.get_pixmap(
