@@ -1266,7 +1266,47 @@ if uploaded is not None:
                     hide_index=True,
                     use_container_width=True
                 )
+           
+                st.subheader("Visual Word Comparison")
 
+                comparison_locations = locations[:2]
+
+                columns = st.columns(2)
+
+                for index, location in enumerate(
+                    comparison_locations
+                ):
+                    with columns[index]:
+                        st.write(
+                            f"Occurrence {index + 1} "
+                            f"— Page {location['Page']}"
+                        )
+
+                        word_image = crop_word_image(
+                            pdf,
+                            location
+                        )
+
+                        if word_image is not None:
+                            st.image(
+                                word_image,
+                                use_container_width=True
+                            )
+                        else:
+                            st.warning(
+                                "Unable to extract word image."
+                            )
+
+                st.caption(
+                    "Images are cropped using unverified "
+                    "PDF/OCR word coordinates. Visual "
+                    "differences do not establish tampering."
+                )
+
+ 
+
+
+                
                 st.caption(
                     "Word locations are based on PDF text "
                     "or OCR and require visual verification. "
