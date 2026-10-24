@@ -643,6 +643,31 @@ if uploaded is not None:
             st.subheader("Document Text Review")
 
             extracted_pages = extract_document_text(pdf)
+        
+            st.subheader("Names and Dates Review")
+
+            extracted_items = extract_names_and_dates(
+                extracted_pages
+            )
+
+            if extracted_items:
+                st.dataframe(
+                    extracted_items,
+                    hide_index=True,
+                    use_container_width=True
+                )
+
+                st.caption(
+                    "These are possible names and dates "
+                    "identified in extracted PDF text. "
+                    "They have not been verified against "
+                    "the document image."
+                )
+            else:
+                st.info(
+                    "No names or dates matched the "
+                    "current extraction patterns."
+                )
 
             text_page_number = st.selectbox(
                 "Choose a page to review its text",
