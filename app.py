@@ -1277,7 +1277,39 @@ if uploaded is not None:
             st.success("Document loaded successfully.")
 
             st.metric("Pages", len(pdf))
-   
+            st.subheader("Visual Selection Workspace")
+
+                st.write(
+                    "Choose a page to examine a specific "
+                    "word, paragraph, date, or signature."
+                )
+
+                selected_page = st.selectbox(
+                    "Select document page",
+                    options=list(range(1, len(pdf) + 1)),
+                    key="visual_selection_page"
+                ) 
+              
+                page = pdf[selected_page - 1]
+
+                pix = page.get_pixmap(
+                    matrix=fitz.Matrix(1.5, 1.5),
+                    alpha=False
+                )
+
+                page_image = Image.frombytes(
+                    "RGB",
+                    (pix.width, pix.height),
+                    pix.samples
+                )
+
+                st.image(
+                    page_image,
+                    caption=f"Document Page {selected_page}",
+                    use_container_width=True
+                )
+
+            
             st.subheader("Document Type Detection")
 
             document_types = []
