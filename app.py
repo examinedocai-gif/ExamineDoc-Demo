@@ -1559,6 +1559,36 @@ if uploaded is not None:
                                     )
 
 
+                                    ink_results = analyze_horizontal_ink(
+                                        word_image
+                                    )
+
+                                    if ink_results:
+                                        st.write("Horizontal Ink Coverage")
+
+                                        st.dataframe(
+                                            ink_results,
+                                            hide_index=True,
+                                            use_container_width=True
+                                        )
+
+                                        high_coverage = [
+                                            row for row in ink_results
+                                            if row["Possible horizontal rule"]
+                                        ]
+
+                                        st.metric(
+                                            "Rows with high ink coverage",
+                                            len(high_coverage)
+                                        )
+
+                                    st.caption(
+                                        "High ink coverage can indicate "
+                                        "an underline, printed lettering, "
+                                        "or another horizontal mark. "
+                                        "It does not establish alteration."
+                                    )
+
                             
                             word_metrics = measure_cropped_word(
                                 word_image
