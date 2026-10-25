@@ -1340,6 +1340,27 @@ if uploaded is not None:
                                 word_image,
                                 use_container_width=True
                             )
+
+                       
+                            word_metrics = measure_cropped_word(
+                                word_image
+                            )
+
+                            if word_metrics:
+                                st.write("Image Measurements")
+                                st.dataframe(
+                                    [
+                                        {
+                                            "Measurement": key,
+                                            "Value": value
+                                        }
+                                        for key, value in word_metrics.items()
+                                    ],
+                                    hide_index=True,
+                                    use_container_width=True
+                                )
+ 
+                        
                         else:
                             st.warning(
                                 "Unable to extract word image."
