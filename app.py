@@ -1493,6 +1493,26 @@ if uploaded is not None:
                                     use_container_width=True
                                 )
 
+                            diagnostic_image = diagnose_horizontal_lines(
+                                word_image
+                            )
+
+                            if diagnostic_image is not None:
+                                with st.expander(
+                                    "Show horizontal-line diagnostic"
+                                ):
+                                    st.image(
+                                        diagnostic_image,
+                                        use_container_width=True
+                                    )
+
+                                    st.caption(
+                                        "Red pixels indicate candidate "
+                                        "horizontal-line components. "
+                                        "They do not indicate alteration "
+                                        "or tampering."
+                                    )
+
 
                             
                             word_metrics = measure_cropped_word(
