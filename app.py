@@ -792,6 +792,51 @@ def diagnose_horizontal_lines(word_image):
 
 
 
+def analyze_horizontal_ink(word_image):
+    """
+    Measure horizontal dark-pixel coverage
+    in a cropped word image.
+
+    Diagnostic only. Does not change the image
+    or establish document alteration.
+    """
+
+    if word_image is None:
+        return []
+
+    gray = np.array(word_image.convert("L"))
+
+    _, binary = cv2.threshold(
+        gray,
+        0,
+        255,
+        cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
+    )
+
+    height, width = binary.shape
+
+    results = []
+
+    for y in range(height):
+        dark_pixels = int(
+            np.count_nonzero(binary[y, :])
+        )
+
+        coverage = dark_pixels / width
+
+        results.append({
+            "Row (px)": y,
+            "Dark pixels": dark_pixels,
+            "Coverage (%)": round(coverage * 100, 2),
+            "Possible horizontal rule": (
+                coverage >= 0.65
+            )
+        })
+
+    return results
+
+
+
 
 
 
