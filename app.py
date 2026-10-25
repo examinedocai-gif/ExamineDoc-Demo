@@ -738,6 +738,58 @@ def normalize_word_image(word_image):
 
 
 
+def diagnose_horizontal_lines(word_image):
+    """
+    Display candidate horizontal components in red.
+
+    Diagnostic visualization only.
+    Does not modify the original image.
+    """
+
+    if word_image is None:
+        return None
+
+    gray = np.array(word_image.convert("L"))
+
+    _, binary = cv2.threshold(
+        gray,
+        0,
+        255,
+        cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
+    )
+
+    height, width = binary.shape
+    lower_start = int(height * 0.75)
+
+    n_labels, labels, stats, _ = (
+        cv2.connectedComponentsWithStats(
+            binary,
+            connectivity=8
+        )
+    )
+
+    candidate_mask = np.zeros_like(binary)
+
+    for component in range(1, n_labels):
+        x, y, w, h, area = stats[component]
+
+        if (
+            y >= lower_start
+            and w >= width * 0.65
+            and h <= max(4, height * 0.12)
+            and w >= 4 * h
+        ):
+            candidate_mask[labels == component] = 255
+
+    diagnostic = np.array(
+        word_image.convert("RGB")
+    ).copy()
+
+    # Highlight detected candidate pixels in red.
+    diagnostic[candidate_mask > 0] = [255, 0, 0]
+
+    return Image.fromarray(diagnostic)
+
 
 
 
