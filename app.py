@@ -690,10 +690,28 @@ def normalize_word_image(word_image):
     # portion of the image.
     lower_start = int(binary.shape[0] * 0.75)
 
+   
+    # Identify separate horizontal components near the bottom.
     removal_mask = np.zeros_like(binary)
-    removal_mask[lower_start:, :] = possible_lines[lower_start:, :]
+
+    n_labels, labels, stats, _ = cv2.connectedComponentsWithStats(
+        binary,
+        connectivity=8
+    )
+
+    for component in range(1, n_labels):
+        x, y, w, h, area = stats[component]
+
+        if (
+            y >= lower_start
+            and w >= binary.shape[1] * 0.65
+            and h <= max(4, binary.shape[0] * 0.12)
+            and w >= 4 * h
+        ):
+            removal_mask[labels == component] = 255
 
     cleaned = cv2.subtract(binary, removal_mask)
+ 
 
     # Find remaining dark pixels.
     points = cv2.findNonZero(cleaned)
