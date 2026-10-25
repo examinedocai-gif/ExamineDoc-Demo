@@ -650,6 +650,76 @@ def measure_cropped_word(word_image):
     }
 
 
+def normalize_word_image(word_image):
+    """
+    Prepare a cropped word for visual comparison.
+
+    Removes isolated horizontal rules where possible.
+    Preserves the original input image.
+    This is experimental image processing.
+    """
+
+    if word_image is None:
+        return None
+
+    gray = np.array(word_image.convert("L"))
+
+    _, binary = cv2.threshold(
+        gray,
+        0,
+        255,
+        cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
+    )
+
+    # Identify long horizontal structures.
+    # These may be underlines or parts of letters.
+    line_width = max(20, int(binary.shape[1] * 0.75))
+
+    horizontal_kernel = cv2.getStructuringElement(
+        cv2.MORPH_RECT,
+        (line_width, 1)
+    )
+
+    possible_lines = cv2.morphologyEx(
+        binary,
+        cv2.MORPH_OPEN,
+        horizontal_kernel
+    )
+
+    # Remove only lines located in the lower
+    # portion of the image.
+    lower_start = int(binary.shape[0] * 0.75)
+
+    removal_mask = np.zeros_like(binary)
+    removal_mask[lower_start:, :] = possible_lines[lower_start:, :]
+
+    cleaned = cv2.subtract(binary, removal_mask)
+
+    # Find remaining dark pixels.
+    points = cv2.findNonZero(cleaned)
+
+    if points is None:
+        return word_image.copy()
+
+    x, y, w, h = cv2.boundingRect(points)
+
+    # Preserve a small border.
+    padding = 3
+
+    x0 = max(0, x - padding)
+    y0 = max(0, y - padding)
+    x1 = min(cleaned.shape[1], x + w + padding)
+    y1 = min(cleaned.shape[0], y + h + padding)
+
+    cropped = cleaned[y0:y1, x0:x1]
+
+    # Convert back to black text on white.
+    normalized = 255 - cropped
+
+    return Image.fromarray(normalized).convert("RGB")
+
+
+
 
 
 
