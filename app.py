@@ -1411,7 +1411,20 @@ if uploaded is not None:
                                 use_container_width=True
                             )
 
-                       
+
+                            normalized_image = normalize_word_image(
+                                word_image
+                            )
+
+                            if normalized_image is not None:
+                                st.caption("Experimental normalized image")
+                                st.image(
+                                    normalized_image,
+                                    use_container_width=True
+                                )
+
+
+                            
                             word_metrics = measure_cropped_word(
                                 word_image
                             )
