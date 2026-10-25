@@ -604,6 +604,54 @@ def crop_word_image(pdf, location, zoom=3):
     )
 
 
+def measure_cropped_word(word_image):
+    """
+    Measure image characteristics of a cropped word.
+
+    These are descriptive measurements, not
+    font identification or tampering findings.
+    """
+
+    if word_image is None:
+        return None
+
+    gray = np.array(
+        word_image.convert("L")
+    )
+
+    # Apply a small blur to reduce pixel noise.
+    smoothed = cv2.GaussianBlur(
+        gray, (3, 3), 0
+    )
+
+    _, binary = cv2.threshold(
+        smoothed,
+        0,
+        255,
+        cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
+    )
+
+    dark_ratio = float(
+        np.count_nonzero(binary) / binary.size
+    )
+
+    sharpness = float(
+        cv2.Laplacian(
+            gray,
+            cv2.CV_64F
+        ).var()
+    )
+
+    return {
+        "Crop width (px)": word_image.width,
+        "Crop height (px)": word_image.height,
+        "Dark pixel ratio": round(dark_ratio, 4),
+        "Sharpness measure": round(sharpness, 2)
+    }
+
+
+
+
 
 
 
