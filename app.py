@@ -7,7 +7,7 @@ import hashlib
 from PIL import Image
 from io import BytesIO
 from datetime import datetime, timezone
-
+from streamlit_image_coordinates import streamlit_image_coordinates
 st.set_page_config(
     page_title="ExamineDoc.ai",
     page_icon="🔍",
