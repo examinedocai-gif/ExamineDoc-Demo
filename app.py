@@ -1307,6 +1307,22 @@ if uploaded is not None:
                     use_container_width=True
                 )
 
+            
+            st.write(
+                    "Click on the document below to begin "
+                    "selecting an area for examination."
+                )
+
+            clicked_position = streamlit_image_coordinates(
+                    page_image,
+                    key=f"document_selection_{selected_page}"
+                )
+
+            if clicked_position is not None:
+                    st.write(
+                        "Selected position:",
+                        clicked_position
+                    )
 
             
             st.subheader("Document Type Detection")
