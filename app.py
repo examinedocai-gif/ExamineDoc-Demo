@@ -1317,7 +1317,10 @@ if uploaded is not None:
                     page_image,
                     key=f"document_selection_{selected_page}"
                 )
+            selection_key = f"selection_points_{selected_page}"
 
+            if selection_key not in st.session_state:
+                    st.session_state[selection_key] = []
             if clicked_position is not None:
                     st.write(
                         "Selected position:",
