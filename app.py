@@ -1326,7 +1326,10 @@ if uploaded is not None:
                         "Selected position:",
                         clicked_position
                     )
-
+            if not st.session_state[selection_key]:
+                        st.session_state[selection_key].append(
+                            (clicked_position["x"], clicked_position["y"])
+                        )
             
             st.subheader("Document Type Detection")
 
