@@ -1320,16 +1320,14 @@ if uploaded is not None:
             selection_key = f"selection_points_{selected_page}"
 
             if selection_key not in st.session_state:
-                    st.session_state[selection_key] = []
+                st.session_state[selection_key] = []
             if clicked_position is not None:
-
                 click_id = clicked_position.get("unix_time")
                 st.write(
-                        "Selected position:",
-                        clicked_position
+                     "Selected position:",
+                    clicked_position
                     )
-
-                 last_click_key = f"last_click_{selected_page}"
+                last_click_key = f"last_click_{selected_page}"
 
                     if st.session_state.get(last_click_key) != click_id:
                         st.session_state[last_click_key] = click_id 
