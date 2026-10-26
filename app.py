@@ -1338,7 +1338,33 @@ if uploaded is not None:
                         st.session_state[selection_key].append(
                             (clicked_position["x"], clicked_position["y"])
                         )
-         
+            
+            if len(st.session_state[selection_key]) == 2:
+                    point1, point2 = st.session_state[selection_key]
+
+                    x1 = max(0, min(point1[0], point2[0]))
+                    y1 = max(0, min(point1[1], point2[1]))
+                    x2 = min(page_image.width, max(point1[0], point2[0]))
+                    y2 = min(page_image.height, max(point1[1], point2[1]))
+
+                    if x2 > x1 and y2 > y1:
+                        selected_crop = page_image.crop(
+                            (x1, y1, x2, y2)
+                        )
+
+                        st.subheader("Selected Area Preview")
+
+                        st.image(
+                            selected_crop,
+                            caption=f"Selected area from Page {selected_page}",
+                            width="stretch"
+                        )
+                    else:
+                        st.warning(
+                            "Please select two different corners "
+                            "of the area you want to examine."
+                        )
+
             st.subheader("Document Type Detection")
 
             document_types = []
