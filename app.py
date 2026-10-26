@@ -1356,9 +1356,25 @@ if uploaded is not None:
                         )
 
                         st.subheader("Selected Area Preview")
+                        zoom_level = st.slider(
+                            "Magnification",
+                            min_value=1,
+                            max_value=5,
+                            value=2,
+                            step=1,
+                            key=f"selection_zoom_{selected_page}"
+                        )
+                       
+                        zoomed_crop = selected_crop.resize(
+                            (
+                                selected_crop.width * zoom_level,
+                                selected_crop.height * zoom_level
+                            ),
+                            Image.Resampling.LANCZOS
+                        )
 
                         st.image(
-                            selected_crop,
+                            zoomed_crop,
                             caption=f"Selected area from Page {selected_page}",
                             width="stretch"
                         )
