@@ -1329,9 +1329,9 @@ if uploaded is not None:
                         clicked_position
                     )
 
-                        last_click_key = f"last_click_{selected_page}"
+                 last_click_key = f"last_click_{selected_page}"
 
-                        if st.session_state.get(last_click_key) != click_id:
+                    if st.session_state.get(last_click_key) != click_id:
                         st.session_state[last_click_key] = click_id 
                         if not st.session_state[selection_key]:
                             st.session_state[selection_key].append(
