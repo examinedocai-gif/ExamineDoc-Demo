@@ -1322,15 +1322,27 @@ if uploaded is not None:
             if selection_key not in st.session_state:
                     st.session_state[selection_key] = []
             if clicked_position is not None:
-                    st.write(
+
+                click_id = clicked_position.get("unix_time")
+                st.write(
                         "Selected position:",
                         clicked_position
                     )
-                if not st.session_state[selection_key]:
-                        st.session_state[selection_key].append(
+
+                        last_click_key = f"last_click_{selected_page}"
+
+                        if st.session_state.get(last_click_key) != click_id:
+                        st.session_state[last_click_key] = click_id 
+                        if not st.session_state[selection_key]:
+                            st.session_state[selection_key].append(
                             (clicked_position["x"], clicked_position["y"])
                         )
-            
+               
+                        elif len(st.session_state[selection_key]) == 1:
+                            st.session_state[selection_key].append(
+                            (clicked_position["x"], clicked_position["y"])
+                        )
+         
             st.subheader("Document Type Detection")
 
             document_types = []
