@@ -1289,15 +1289,13 @@ if uploaded is not None:
                     options=list(range(1, len(pdf) + 1)),
                     key="visual_selection_page"
                 )
+            page = pdf[selected_page - 1]
 
-                page = pdf[selected_page - 1]
-
-                pix = page.get_pixmap(
+            pix = page.get_pixmap(
                     matrix=fitz.Matrix(1.5, 1.5),
                     alpha=False
                 )
-
-                page_image = Image.frombytes(
+            page_image = Image.frombytes(
                     "RGB",
                     (pix.width, pix.height),
                     pix.samples
