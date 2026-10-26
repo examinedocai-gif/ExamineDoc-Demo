@@ -1284,8 +1284,7 @@ if uploaded is not None:
                     "Choose a page to examine a specific "
                     "word, paragraph, date, or signature."
                 )
-
-                selected_page = st.selectbox(
+            selected_page = st.selectbox(
                     "Select document page",
                     options=list(range(1, len(pdf) + 1)),
                     key="visual_selection_page"
