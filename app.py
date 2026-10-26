@@ -1367,6 +1367,13 @@ if uploaded is not None:
                             "Please select two different corners "
                             "of the area you want to examine."
                         )
+            
+            if st.button(
+                    "Reset Selection",
+                    key=f"reset_selection_{selected_page}"
+                ):
+                    st.session_state[selection_key] = []
+                    st.rerun()
 
             st.subheader("Document Type Detection")
 
