@@ -1341,7 +1341,10 @@ if uploaded is not None:
             
             if len(st.session_state[selection_key]) == 2:
                     point1, point2 = st.session_state[selection_key]
-
+                    st.write(
+                        "Original image dimensions:",
+                        page_image.size
+                    ) 
                     x1 = max(0, min(point1[0], point2[0]))
                     y1 = max(0, min(point1[1], point2[1]))
                     x2 = min(page_image.width, max(point1[0], point2[0]))
