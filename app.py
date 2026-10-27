@@ -1415,6 +1415,21 @@ if uploaded is not None:
                         }
 
                         st.success("Area A saved for comparison.") 
+                         
+                         
+                    if st.button(
+                        "Save as Area B",
+                        key=f"save_area_b_{selected_page}"
+                    ):
+                        st.session_state["comparison_area_b"] = {
+                            "image": selected_crop.copy(),
+                            "page": selected_page,
+                            "coordinates": (x1, y1, x2, y2),
+                            "measurements": area_metrics.copy()
+                        }
+
+                        st.success("Area B saved for comparison.")
+
             if st.button(
                     "Reset Selection",
                     key=f"reset_selection_{selected_page}"
