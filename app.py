@@ -1462,7 +1462,7 @@ if uploaded is not None:
                         ) 
 
             
-                   st.subheader("Document Type Detection")
+            st.subheader("Document Type Detection")
 
             document_types = []
 
