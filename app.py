@@ -1378,6 +1378,21 @@ if uploaded is not None:
                             caption=f"Selected area from Page {selected_page}",
                          width=min(selected_crop.width * zoom_level, 1100) 
                         )
+                        area_metrics = measure_cropped_word(
+                            selected_crop
+                        )
+
+                        st.subheader("Selected Area Analysis")
+
+                        if area_metrics:
+                            st.dataframe(
+                                [
+                                    {"Measurement": name, "Value": value}
+                                    for name, value in area_metrics.items()
+                                ],
+                                hide_index=True,
+                                use_container_width=True
+                            )
                     else:
                         st.warning(
                             "Please select two different corners "
