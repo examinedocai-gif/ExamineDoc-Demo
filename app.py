@@ -1436,8 +1436,33 @@ if uploaded is not None:
                 ):
                     st.session_state[selection_key] = []
                     st.rerun()
+            
+            if (
+                    "comparison_area_a" in st.session_state
+                    and "comparison_area_b" in st.session_state
+                ):
+                    st.subheader("Side-by-Side Area Comparison")
 
-            st.subheader("Document Type Detection")
+                    area_a = st.session_state["comparison_area_a"]
+                    area_b = st.session_state["comparison_area_b"]
+
+                    col_a, col_b = st.columns(2) 
+                    with col_a:
+                        st.markdown(f"**Area A — Page {area_a['page']}**")
+                        st.image(
+                            area_a["image"],
+                            use_container_width=True
+                        ) 
+
+                    with col_b:
+                        st.markdown(f"**Area B — Page {area_b['page']}**")
+                        st.image(
+                            area_b["image"],
+                            use_container_width=True
+                        ) 
+
+            
+                   st.subheader("Document Type Detection")
 
             document_types = []
 
