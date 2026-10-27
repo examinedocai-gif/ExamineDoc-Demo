@@ -1376,7 +1376,7 @@ if uploaded is not None:
                         st.image(
                             zoomed_crop,
                             caption=f"Selected area from Page {selected_page}",
-                            width="stretch"
+                           width="content"
                         )
                     else:
                         st.warning(
