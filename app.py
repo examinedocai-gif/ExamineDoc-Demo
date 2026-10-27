@@ -1403,7 +1403,7 @@ if uploaded is not None:
                     and x2 > x1
                     and y2 > y1
                 ):
-                    if st.button(
+            if st.button(
                         "Save as Area A",
                         key=f"save_area_a_{selected_page}"
                     ):
