@@ -1493,7 +1493,18 @@ if uploaded is not None:
                         "differences between two selected document areas. "
                         "Differences do not establish alteration or forgery."
                     )
+                   
+                    image_a = area_a["image"].convert("RGB")
+                    image_b = area_b["image"].convert("RGB")
 
+                    if image_a.size == image_b.size:
+                        st.write("Image dimensions match.")
+                    else:
+                        st.info(
+                            "These areas have different dimensions. "
+                            "Direct pixel comparison requires alignment."
+                        )
+ 
             
             st.subheader("Document Type Detection")
 
