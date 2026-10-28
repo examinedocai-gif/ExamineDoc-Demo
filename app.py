@@ -4,7 +4,7 @@ import fitz
 import cv2
 import numpy as np
 import hashlib
-from PIL import Image
+from PIL import Image, ImageChops
 from io import BytesIO
 from datetime import datetime, timezone
 from streamlit_image_coordinates import streamlit_image_coordinates
@@ -1499,6 +1499,20 @@ if uploaded is not None:
 
                     if image_a.size == image_b.size:
                         st.write("Image dimensions match.")
+
+                        
+                        difference_image = ImageChops.difference(
+                            image_a,
+                            image_b
+                        )
+
+                        
+                        st.image(
+                            difference_image,
+                            caption="Pixel Difference Preview",
+                            use_container_width=True
+                        )
+
                     else:
                         st.info(
                             "These areas have different dimensions. "
