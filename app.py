@@ -1460,7 +1460,24 @@ if uploaded is not None:
                             area_b["image"],
                             use_container_width=True
                         ) 
+                    comparison_rows = []
 
+                    for measurement in area_a["measurements"]:
+                        comparison_rows.append({
+                            "Measurement": measurement,
+                            "Area A": area_a["measurements"][measurement],
+                            "Area B": area_b["measurements"].get(
+                                measurement, "N/A"
+                            )
+                        })
+
+                    st.subheader("Area A vs. Area B Measurements")
+
+                    st.dataframe(
+                        comparison_rows,
+                        hide_index=True,
+                        use_container_width=True
+                    )
             
             st.subheader("Document Type Detection")
 
