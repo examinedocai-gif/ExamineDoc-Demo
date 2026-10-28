@@ -1485,6 +1485,16 @@ if uploaded is not None:
                         st.session_state.pop("comparison_area_a", None)
                         st.session_state.pop("comparison_area_b", None)
                         st.rerun() 
+                   
+                    st.subheader("Visual Difference Analysis")
+
+                    st.caption(
+                        "This experimental comparison highlights visual "
+                        "differences between two selected document areas. "
+                        "Differences do not establish alteration or forgery."
+                    )
+
+            
             st.subheader("Document Type Detection")
 
             document_types = []
