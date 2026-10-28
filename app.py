@@ -1478,7 +1478,13 @@ if uploaded is not None:
                         hide_index=True,
                         use_container_width=True
                     )
-            
+                    if st.button(
+                        "Clear Comparison",
+                        key="clear_area_comparison"
+                    ):
+                        st.session_state.pop("comparison_area_a", None)
+                        st.session_state.pop("comparison_area_b", None)
+                        st.rerun() 
             st.subheader("Document Type Detection")
 
             document_types = []
