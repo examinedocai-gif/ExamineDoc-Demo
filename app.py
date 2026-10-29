@@ -1248,6 +1248,12 @@ def build_report(data, filename, min_percent):
         report.close()
 
 
+st.markdown(
+    "**How to begin:** Upload a fictional or fully redacted PDF, "
+    "review the document analysis, and select specific areas "
+    "to magnify or compare."
+)
+
 uploaded = st.file_uploader(
     "Upload a test PDF",
     type=["pdf"]
