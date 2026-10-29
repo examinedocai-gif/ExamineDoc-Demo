@@ -16,7 +16,11 @@ st.set_page_config(
 
 st.title("ExamineDoc.ai")
 st.subheader("Clarity Through Examination.")
-st.write("Document examination and evidence reporting.")
+st.write(
+    "Examine documents with greater clarity. "
+    "Explore text, typography, image details, and visual "
+    "differences through AI-assisted screening tools."
+)
 
 st.warning(
     "Public development demo. Upload only fictional "
