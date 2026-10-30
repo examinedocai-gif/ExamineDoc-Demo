@@ -1019,7 +1019,9 @@ def write_lines(page, lines, top=50):
         y += 18
 
 
+    
 def build_report(data, filename, min_percent):
+
     source_hash = hashlib.sha256(data).hexdigest()
     report = fitz.open()
 
@@ -1227,8 +1229,10 @@ def build_report(data, filename, min_percent):
                 f"Pages examined: {len(source)}",
                 f"Total detected regions: {total_regions}",
                 "",
-                "This document records automated",
-                "image-region measurements.",
+                "This report records automated image-region",
+                "measurements and annotated page images.",
+                "Additional screening tools are available",
+                "in the ExamineDoc.ai application.",
                 "",
                 "Human review is required to interpret",
                 "the significance of any observation.",
