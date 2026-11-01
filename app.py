@@ -1825,7 +1825,7 @@ if uploaded is not None:
                                         st.dataframe(
                                             ink_results,
                                             hide_index=True,
-                                            width="stretch
+                                            width="stretch"
                                         )
 
                                         high_coverage = [
