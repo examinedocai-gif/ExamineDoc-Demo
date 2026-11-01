@@ -1318,7 +1318,7 @@ if uploaded is not None:
             st.image(
                     page_image,
                     caption=f"Document Page {selected_page}",
-                    use_container_width=True
+                    width="stretch" 
                 )
 
             
@@ -1405,7 +1405,7 @@ if uploaded is not None:
                                     for name, value in area_metrics.items()
                                 ],
                                 hide_index=True,
-                                use_container_width=True
+                                width="stretch"
                             )
                     else:
                         st.warning(
@@ -1465,14 +1465,14 @@ if uploaded is not None:
                         st.markdown(f"**Area A — Page {area_a['page']}**")
                         st.image(
                             area_a["image"],
-                            use_container_width=True
+                            width="stretch"
                         ) 
 
                     with col_b:
                         st.markdown(f"**Area B — Page {area_b['page']}**")
                         st.image(
                             area_b["image"],
-                            use_container_width=True
+                            width="stretch" 
                         ) 
                     comparison_rows = []
 
@@ -1490,7 +1490,7 @@ if uploaded is not None:
                     st.dataframe(
                         comparison_rows,
                         hide_index=True,
-                        use_container_width=True
+                        width="stretch" 
                     )
                     if st.button(
                         "Clear Comparison",
@@ -1524,7 +1524,7 @@ if uploaded is not None:
                         st.image(
                             difference_image,
                             caption="Pixel Difference Preview",
-                            use_container_width=True
+                            width="stretch"
                         )
 
                     else:
@@ -1556,7 +1556,7 @@ if uploaded is not None:
             st.dataframe(
                 document_types,
                 hide_index=True,
-                use_container_width=True
+                width="stretch"
             )
 
             st.caption(
@@ -1612,7 +1612,7 @@ if uploaded is not None:
                 st.dataframe(
                     extracted_items,
                     hide_index=True,
-                    use_container_width=True
+                    width="stretch" 
                 )
 
                 st.caption(
@@ -1753,7 +1753,7 @@ if uploaded is not None:
                 st.dataframe(
                     locations,
                     hide_index=True,
-                    use_container_width=True
+                    width="stretch" 
                 )
            
                 st.subheader("Visual Word Comparison")
@@ -1779,7 +1779,7 @@ if uploaded is not None:
                         if word_image is not None:
                             st.image(
                                 word_image,
-                                use_container_width=True
+                                width="stretch" 
                             )
 
 
@@ -1791,7 +1791,7 @@ if uploaded is not None:
                                 st.caption("Experimental normalized image")
                                 st.image(
                                     normalized_image,
-                                    use_container_width=True
+                                    width="stretch"
                                 )
 
                             diagnostic_image = diagnose_horizontal_lines(
@@ -1804,7 +1804,7 @@ if uploaded is not None:
                                 ):
                                     st.image(
                                         diagnostic_image,
-                                        use_container_width=True
+                                        width="stretch"
                                     )
 
                                     st.caption(
@@ -1825,7 +1825,7 @@ if uploaded is not None:
                                         st.dataframe(
                                             ink_results,
                                             hide_index=True,
-                                            use_container_width=True
+                                            width="stretch
                                         )
 
                                         high_coverage = [
@@ -1861,7 +1861,7 @@ if uploaded is not None:
                                         for key, value in word_metrics.items()
                                     ],
                                     hide_index=True,
-                                    use_container_width=True
+                                    width="stretch" 
                                 )
  
                         
@@ -1908,7 +1908,7 @@ if uploaded is not None:
                 st.dataframe(
                     word_results,
                     hide_index=True,
-                    use_container_width=True
+                    width="stretch"
                 )
             else:
                 st.info(
@@ -1948,7 +1948,7 @@ if uploaded is not None:
                 st.dataframe(
                     comparison_results,
                     hide_index=True,
-                    use_container_width=True
+                    width="stretch" 
                 )
             else:
                 st.info(
@@ -1968,7 +1968,7 @@ if uploaded is not None:
                 st.dataframe(
                     typography_results,
                     hide_index=True,
-                    use_container_width=True
+                    width="stretch"
                 )
 
                 st.caption(
@@ -2055,7 +2055,7 @@ if uploaded is not None:
 
             st.image(
                 display_image,
-                use_container_width=True
+                width="stretch" 
             )
 
 
